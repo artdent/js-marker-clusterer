@@ -48,6 +48,8 @@
  *     'minimumClusterSize': (number) The minimum number of markers to be in a
  *                           cluster before the markers are hidden and a count
  *                           is shown.
+ *     'clusterPane': The name of the map pane in which to draw cluster images.
+ *                    Defaults to 'overlayMouseTarget'.
  *     'styles': (object) An object that has style properties:
  *       'url': (string) The image url.
  *       'height': (number) The image height.
@@ -144,6 +146,12 @@ function MarkerClusterer(map, opt_markers, opt_options) {
    * @private
    */
   this.averageCenter_ = false;
+
+  /**
+   * @type {string}
+   * @private
+   */
+  this.clusterPane_ = options['clusterPane'] || 'overlayMouseTarget';
 
   if (options['averageCenter'] != undefined) {
     this.averageCenter_ = options['averageCenter'];
@@ -342,6 +350,16 @@ MarkerClusterer.prototype.setMaxZoom = function(maxZoom) {
  */
 MarkerClusterer.prototype.getMaxZoom = function() {
   return this.maxZoom_;
+};
+
+
+/**
+ *  Gets the name of the map pane in which to draw cluster images.
+ *
+ *  @return {string} The map pane name.
+ */
+MarkerClusterer.prototype.getClusterPane = function() {
+  return this.clusterPane_;
 };
 
 
@@ -808,8 +826,9 @@ function Cluster(markerClusterer) {
   this.center_ = null;
   this.markers_ = [];
   this.bounds_ = null;
-  this.clusterIcon_ = new ClusterIcon(this, markerClusterer.getStyles(),
-      markerClusterer.getGridSize());
+  this.clusterIcon_ = new ClusterIcon(
+    this, markerClusterer.getStyles(),
+    markerClusterer.getGridSize(), markerClusterer.getClusterPane());
 }
 
 /**
@@ -1020,11 +1039,12 @@ Cluster.prototype.updateIcon = function() {
  *     'textSize': (number) The text size.
  *     'backgroundPosition: (string) The background postition x, y.
  * @param {number=} opt_padding Optional padding to apply to the cluster icon.
+ * @param {string=} opt_pane Name of the map pane in which to draw the icon.
  * @constructor
  * @extends google.maps.OverlayView
  * @ignore
  */
-function ClusterIcon(cluster, styles, opt_padding) {
+function ClusterIcon(cluster, styles, opt_padding, opt_pane) {
   cluster.getMarkerClusterer().extend(ClusterIcon, google.maps.OverlayView);
 
   this.styles_ = styles;
@@ -1035,6 +1055,7 @@ function ClusterIcon(cluster, styles, opt_padding) {
   this.div_ = null;
   this.sums_ = null;
   this.visible_ = false;
+  this.pane_ = opt_pane || 'overlayMouseTarget';
 
   this.setMap(this.map_);
 }
@@ -1071,7 +1092,7 @@ ClusterIcon.prototype.onAdd = function() {
   }
 
   var panes = this.getPanes();
-  panes.overlayMouseTarget.appendChild(this.div_);
+  panes[this.pane_].appendChild(this.div_);
 
   var that = this;
   google.maps.event.addDomListener(this.div_, 'click', function(event) {
